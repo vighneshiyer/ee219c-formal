@@ -1,0 +1,88 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{comment}
+\usepackage{multirow}
+\usepackage{askmaps}
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+% Wrap long URLs with hyphens
+\PassOptionsToPackage{hyphens}{url}\usepackage{hyperref}
+\usepackage{pdftexcmds}
+\usepackage{upquote}
+\usepackage{textcomp}
+\usepackage{minted}
+\usepackage[listings]{tcolorbox}
+\usepackage{enumerate}
+\usepackage{enumitem}
+\usepackage{mathtools}
+\DeclarePairedDelimiter{\ceil}{\Big\lceil}{\Big\rceil}
+
+\tcbset{
+texexp/.style={colframe=black, colback=lightgray!15,
+         coltitle=white,
+         fonttitle=\small\sffamily\bfseries, fontupper=\small, fontlower=\small},
+     example/.style 2 args={texexp,
+title={Question \thetcbcounter: #1},label={#2}},
+}
+
+\newtcolorbox{texexp}[1]{texexp}
+\newtcolorbox[auto counter]{texexptitled}[3][]{%
+example={#2}{#3},#1}
+
+\setlength{\topmargin}{-0.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\textwidth}{6.5in}
+
+% Useful macros
+\newenvironment{tightlist}
+{\begin{itemize}
+ \setlength{\parsep}{0pt}
+ \setlength{\itemsep}{-2pt}}
+{\end{itemize}}
+
+\newenvironment{titledtightlist}[1]
+{\noindent
+ ~~\textbf{#1}
+ \begin{itemize}
+ \setlength{\parsep}{0pt}
+ \setlength{\itemsep}{-2pt}}
+{\end{itemize}}
+
+% Change spacing before and after section headers
+\makeatletter
+\renewcommand{\section}
+{\@startsection {section}{1}{0pt}
+ {-2ex}
+ {1ex}
+ {\bfseries\Large}}
+\makeatother
+
+\makeatletter
+\renewcommand{\subsection}
+{\@startsection {subsection}{1}{0pt}
+ {-1ex}
+ {0.5ex}
+ {\bfseries\normalsize}}
+\makeatother
+
+% Reduce likelihood of a single line at the top/bottom of page
+\clubpenalty=2000
+\widowpenalty=2000
+
+% Other commands and parameters
+\pagestyle{myheadings}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{10pt}
+
+% Commands for register format figures.
+\newcommand{\instbit}[1]{\mbox{\scriptsize #1}}
+\newcommand{\instbitrange}[2]{\instbit{#1} \hfill \instbit{#2}}
+
+\graphicspath{{./figs/}}
+
+\begin{document}
+\def\PYZsq{\textquotesingle}

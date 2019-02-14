@@ -17,28 +17,17 @@ object BruteForceSAT extends SATSolver {
   def prod[T](lst: Seq[T], n: Int) = Seq.fill(n)(lst).flatten.combinations(n).flatMap(_.permutations)
 
   override def solve(f: CNFFormula): (Boolean, Option[Seq[Literal]]) = {
-    /*
-    val literals: Set[Literal] = f.foldLeft(Set[Literal]()) {
-      (set, clause) => set.union(clause)
-    }
-
-    // TODO: ugly
-    val variables: Seq[Variable] = Set(literals.map {
-      case l: PLiteral => l.v
-      case l: NLiteral => l.v
-    }).foldLeft(Set[Variable]()) {
-      (set, variable) => set.union(variable)
-    }.toSeq
-    */
     val literals: Set[Literal] = f.foldLeft(Set[Literal]()) {
       case (set, clause) => set.union(clause)
     }
+    assert(!literals.contains(0))
     val variables = literals.map(_.abs).toSeq
 
     val searchResult = prod(Seq(1, -1), variables.size).find {
-      assn => satisfied(f, (variables zip assn).map {
-        case (v, a) => v*a
-      })
+      assignment =>
+        satisfied(f, (variables zip assignment).map {
+          case (v, a) => v*a
+        })
     }
     searchResult match {
       case Some(assn) => (true, Some(assn))
