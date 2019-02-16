@@ -1,0 +1,4 @@
+package formal
+
+class PigeonHoleProblem {
+}

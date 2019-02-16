@@ -11,7 +11,7 @@ trait SATSolver {
   }
 }
 
-object BruteForceSAT extends SATSolver {
+object BruteForceSATSolver extends SATSolver {
   // From https://stackoverflow.com/questions/27101500/scala-permutations-using-two-lists
   // Useful to enumerate all possible T/F combinations of variables
   def prod[T](lst: Seq[T], n: Int) = Seq.fill(n)(lst).flatten.combinations(n).flatMap(_.permutations)
@@ -33,5 +33,11 @@ object BruteForceSAT extends SATSolver {
       case Some(assn) => (true, Some(assn))
       case None => (false, None)
     }
+  }
+}
+
+object HornSATSolver extends SATSolver {
+  override def solve(f: CNFFormula): (Boolean, Option[Seq[Literal]]) = {
+    ???
   }
 }

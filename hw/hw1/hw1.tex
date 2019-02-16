@@ -8,5 +8,38 @@
 \section{Horn-SAT and Renamable Horn-SAT}
 \begin{enumerate}[label=(\alph*)]
     \item {\color{blue}Recall from class that a HornSAT formula is a CNF formula in which each clause contains at most one positive literal. Give an algorithm to decide the satisifiability of HornSAT formulas in linear time (in the number of variables $n$).}
+
+    We can write a HornSAT clause as an implication:
+    \begin{align*}
+        \text{In general: } &A \rightarrow B \iff \neg A \lor B \\
+        \text{HornSAT Clause: } &x_p \lor \neg x_{n,1} \lor \neg x_{n,2} \lor \dots \lor \neg x_{n,l} \\
+        \text{Group terms: } &(\neg x_{n,1} \lor \neg x_{n,2} \lor \dots \lor \neg x_{n,l}) \lor x_p \\
+        \text{Let A = } &(\neg x_{n,1} \lor \neg x_{n,2} \lor \dots \lor \neg x_{n,l}) \\
+        \text{Let B = } &x_p \\
+        \neg A =& (x_{n,1} \land x_{n,2} \land \dots \land x_{n,l}) \\
+        \text{Conclude: } &x_p \lor \neg x_{n,1} \lor \neg x_{n,2} \lor \dots \lor \neg x_{n,l} \iff (x_{n,1} \land x_{n,2} \land \dots) \rightarrow x_p
+    \end{align*}
+
+    We can also handle special-case HornSAT clauses by converting them to implications:
+    \begin{enumerate}
+        \item Unit positive literal clause
+            \begin{align*}
+                x_p \iff (\mathbf{T} \rightarrow x_p)
+            \end{align*}
+            i.e. for the CNF formula to be SAT, $x_p$ must be set to $\mathbf{T}$.
+        \item No positive literals in the clause
+            \begin{align*}
+                (\neg x_{n,1} \lor \dots \lor \neg x_{n,l}) \iff ((x_{n,1} \land \dots \land x_{n,l}) \rightarrow \mathbf{F})
+            \end{align*}
+    \end{enumerate}
+
+    Note that if no unit positive literal clauses are present, the formula is immediately satisfiable with the assignment of all variables to $\mathbf{F}$, since the implication $\mathbf{F} \rightarrow \mathbf{F}$ is true.
+
+    HornSAT can only be unsat if there is at least one unit positive literal clause. In this case, we can selectively flip variables to true based on the implications and find the formula is unsat if flipping a variable would contradict a previous assignment.
+\end{enumerate}
+
+\section{The Pigeon-Hole Problem}
+\begin{enumerate}[label=(\alph*)]
+
 \end{enumerate}
 \end{document}
