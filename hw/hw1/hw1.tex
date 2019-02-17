@@ -40,6 +40,46 @@
 
 \section{The Pigeon-Hole Problem}
 \begin{enumerate}[label=(\alph*)]
+    \item {\color{blue} Encode the pigeon-hole problem as DIMACS CNF for $n = 4, 5, 6, \dots, 15$. Run it with MiniSAT and plot how the runtimes vary with $n$. Describe your observations.}
 
+    I wrote a \href{https://github.com/vighneshiyer/ee219c-formal/blob/master/formal-toolkit/src/main/scala/formal/PigeonHoleProblem.scala}{package in Scala} to handle CNF formulas. Here's the relevant exerpt, which returns the pigeon-hole problem as CNF for $n$ pigeons:
+
+        \begin{minted}[breaklines]{scala}
+def problem(n: Int): CNFFormula = {
+val pigeons = 1 to n
+val holes = 1 until n
+// stride on pigeons with stride size of holes
+def pigeonHoleToVariable(p: Int, h: Int): Int = {
+  (p-1)*holes.size + h
+}
+val everyPigeonInOneHole: CNFFormula = pigeons.map {
+  p => holes.foldLeft(Set.empty[Int]) {
+    case (s, h) => s.union(Set(pigeonHoleToVariable(p, h)))
+  }
+}.toSet
+val noTwoPigeonsPerHole = holes.foldLeft(Set.empty[Set[Int]]) {
+  case (ss, h) => ss.union(pigeons.combinations(2).foldLeft(Seq.empty[Set[Int]]) {
+    case (s, p) => s :+ Set(-pigeonHoleToVariable(p(0), h), -pigeonHoleToVariable(p(1), h))
+  }.toSet)
+}
+everyPigeonInOneHole.union(noTwoPigeonsPerHole)
+}
+        \end{minted}
+
+        I wrote a script to run MiniSAT on the produced CNF file and plotted the runtimes (with a 60 second timeout):
+
+        \begin{figure}[H]
+          \centering
+          \includegraphics[width=\textwidth]{figs/pigeon_hole_runtime.pdf}
+        \end{figure}
+
+        There is a noticable increase in runtime for 10 pigeons, and 11+ pigeons require more than 1 minute of runtime. The runtime growth is exponential. This is clear if plotted on a log-scale:
+
+        \begin{figure}[H]
+          \centering
+          \includegraphics[width=\textwidth]{figs/pigeon_hole_runtime_log.pdf}
+        \end{figure}
+
+    \item {\color{blue} Construct the BDD for the pigeon-hole problem and verify it simplifies to false. What happens when you increase $n$? Does the variable order matter? Use the Python \texttt{dd} package.}
 \end{enumerate}
 \end{document}
