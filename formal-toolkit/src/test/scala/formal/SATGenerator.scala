@@ -10,6 +10,7 @@ object SATGenerator {
     * @return Random set
     */
   def randomSet(n: Int, k: Int): Set[Int] = {
+    // TODO: change this to shuffle the sequence (1 to n) and take k elements
     val s = collection.mutable.Set.empty[Int]
     while (s.size < k) {
       s.add(1 + nextInt(n))
@@ -26,6 +27,7 @@ object SATGenerator {
     */
   def generate(n: Int, m: Int, k: Int): CNFFormula = {
     val clauses = Seq.fill(m) {
+      // TODO: bug, if multiple random clauses are identical, they get collapsed in the set
       val literals = randomSet(n, k).map {
         v => if (nextBoolean()) v else v * -1
       }
