@@ -20,7 +20,7 @@ object PigeonHoleTest extends TestSuite {
           val p = "minisat pigeon_hole.cnf".run() // start asynchronously
           val f = Future(blocking(p.exitValue())) // wrap in Future
           try {
-            Await.result(f, duration.Duration(5, "sec"))
+            Await.result(f, duration.Duration(60, "sec"))
           } catch {
             case _: TimeoutException =>
               println("TIMEOUT!")
