@@ -81,5 +81,28 @@ everyPigeonInOneHole.union(noTwoPigeonsPerHole)
         \end{figure}
 
     \item {\color{blue} Construct the BDD for the pigeon-hole problem and verify it simplifies to false. What happens when you increase $n$? Does the variable order matter? Use the Python \texttt{dd} package.}
+
+      \begin{minted}[breaklines,tabsize=2]{python}
+def pigeonhole(pdfname, n):
+    print ('  [Pigeonhole Problem for n=%d]' % n)
+
+    bdd = _bdd.BDD()
+    for p in range(n):
+        for h in range(n-1):
+            bdd.declare('x_%d_%d' % (p, h))
+
+    # All pigeons are in at least 1 hole
+    all_in_a_hole = map(lambda p: reduce(lambda x, y: x | y, [bdd.var('x_%d_%d' % (p, h)) for h in range(n-1)]), range(n))
+    all_in_a_hole = reduce(lambda x, y: x & y, all_in_a_hole)
+
+    # No 2 pigeons are in the same hole
+    no_two_in_same_hole = [~(bdd.var('x_%d_%d' % (c[0], h))) | ~(bdd.var('x_%d_%d' % (c[1], h))) for c in itertools.combinations(range(n), 2) for h in range(n-1)]
+    no_two_in_same_hole = reduce(lambda x, y: x & y, no_two_in_same_hole)
+    f = all_in_a_hole & no_two_in_same_hole
+    if (f == bdd.true):
+        print('SAT')
+    else:
+        print('UNSAT')
+      \end{minted}
 \end{enumerate}
 \end{document}

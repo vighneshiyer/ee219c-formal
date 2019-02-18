@@ -13,6 +13,8 @@
 #################################################################################
 
 from dd import autoref as _bdd
+from functools import reduce
+import itertools
 
 import argparse
 
@@ -28,7 +30,7 @@ def example1(pdfname, n):
     y = bdd.var('y')
     # Compute the BDD for their disjunction: (x \/ y)
     z = x | y
-    # Compute their conjunction: (x /\ y) 
+    # Compute their conjunction: (x /\ y)
     w = x & y
     # Now prove that (x /\ y) ==> (x \/ y)
     f = w.implies(z)
@@ -42,7 +44,6 @@ def example1(pdfname, n):
         print ('  - But the converse is not true.')
     else:
         print ('  - Uh oh! Should never get here.')
-
     bdd.collect_garbage()
     bdd.dump(pdfname)
 
@@ -58,7 +59,7 @@ def example2(pdfname, n):
     # Arrays with variable names.
     xs_names = ['x%d' % i for i in range(n)]
     ys_names = ['y%d' % i for i in range(n)]
-    # Get references to these variables. 
+    # Get references to these variables.
     xs = [bdd.var(xs_names_i) for xs_names_i in xs_names]
     ys = [bdd.var(ys_names_i) for ys_names_i in ys_names]
 
@@ -99,11 +100,11 @@ def nBitLT(xs, ys):
 
     assert (len(xs) == len(ys))
     # We will use recursion to compute the less-than expression.
-    # 
+    #
     # The recurrence we use is as follows:
     # a[n:0] < b[n:0] == a[n] < b[n] \/ (a[n] = b[n] /\ a[n-1:0] < a[n-1:0])
     #
-    # Also note: 
+    # Also note:
     #   - a[i] < b[i] == ~a[i] /\ b[i]
     #   - a[i] = b[i] == (a[i] /\ b[i]) \/ (~a[i] /\ ~b[i])
     this_bit_lt = (~xs[0]) & (ys[0])
@@ -122,11 +123,11 @@ def nBitGE(xs, ys):
 
     assert (len(xs) == len(ys))
     # We will use recursion to compute the greater-than-equal expression.
-    # 
+    #
     # The recurrence we use is as follows:
     # a[n:0] >= b[n:0] == a[n] > b[n] \/ (a[n] = b[n] /\ a[n-1:0] >= a[n-1:0])
     #
-    # Also note: 
+    # Also note:
     #   - a[i] > b[i] == a[i] /\ ~b[i]
     #   - a[i] >= b[i] == a[i] \/ ~b[i])
     #   - a[i] = b[i] == (a[i] /\ b[i]) \/ (~a[i] /\ ~b[i])
@@ -139,9 +140,25 @@ def nBitGE(xs, ys):
         return this_bit_gt | (this_bit_eq & nBitGE(xs[1:], ys[1:]))
 
 def pigeonhole(pdfname, n):
-    "TODO: Implement your solution to the problem here."
     print ('  [Pigeonhole Problem for n=%d]' % n)
-    print ('  ** FIXME: nothing implemented yet.**')
+
+    bdd = _bdd.BDD()
+    for p in range(n):
+        for h in range(n-1):
+            bdd.declare('x_%d_%d' % (p, h))
+
+    # All pigeons are in at least 1 hole
+    all_in_a_hole = map(lambda p: reduce(lambda x, y: x | y, [bdd.var('x_%d_%d' % (p, h)) for h in range(n-1)]), range(n))
+    all_in_a_hole = reduce(lambda x, y: x & y, all_in_a_hole)
+
+    # No 2 pigeons are in the same hole
+    no_two_in_same_hole = [~(bdd.var('x_%d_%d' % (c[0], h))) | ~(bdd.var('x_%d_%d' % (c[1], h))) for c in itertools.combinations(range(n), 2) for h in range(n-1)]
+    no_two_in_same_hole = reduce(lambda x, y: x & y, no_two_in_same_hole)
+    f = all_in_a_hole & no_two_in_same_hole
+    if (f == bdd.true):
+        print('SAT')
+    else:
+        print('UNSAT')
 
 def main():
     # List of examples.
@@ -157,7 +174,7 @@ def main():
 
     # Print a header.
     print ('** Homework #1: 219C **\n')
-    
+
     # Run the example.
     ex_to_run = examples[args.example - 1]
     ex_to_run(args.pdf, args.n)
