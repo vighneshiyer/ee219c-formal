@@ -33,9 +33,62 @@
             \end{align*}
     \end{enumerate}
 
-    Note that if no unit positive literal clauses are present, the formula is immediately satisfiable with the assignment of all variables to $\mathbf{F}$, since the implication $\mathbf{F} \rightarrow \mathbf{F}$ is true.
+    Note that if no unit positive literal clauses are present, the formula is immediately satisfiable with the assignment of all variables to $\mathbf{F}$.
 
-    HornSAT can only be unsat if there is at least one unit positive literal clause. In this case, we can selectively flip variables to true based on the implications and find the formula is unsat if flipping a variable would contradict a previous assignment.
+    HornSAT can only be unsat if there is at least one unit positive literal clause. In this case, we can selectively flip variables to true based on the implications and find the formula is unsat if flipping a variable would contradict a clause with only negative literals. This basically amounts to positive literal unit propagation.
+
+    \begin{algorithm}[H]
+      \caption{Naive HornSAT Solver}
+      \begin{algorithmic}[1]
+          \Procedure{HornSAT}{$\phi$} \Comment{$\phi$ is a formula in CNF form with $m$ clauses $c_i, i = 1, \dots, m$}
+              \State $A\gets [\mathbf{F}, \dots, \mathbf{F}]$
+              \While{$c \gets \mathbf{!}\Call{Satisfied}{\phi, A}$} \Comment{Where $c$ is some unsatisfied clause}
+                \If{$c$ is of form $(\mathbf{T} \rightarrow x_p)$}
+                  \State $A[x_p] \gets \mathbf{T}$
+                \ElsIf{$c$ is of form $((x_{n,1} \land \dots \land x_{n,l}) \rightarrow x_p)$}
+                  \State $A[x_p] \gets \mathbf{T}$
+                \ElsIf{$c$ is of form $((x_{n,1} \land \dots \land x_{n,l}) \rightarrow \mathbf{F})$}
+                  \State \textbf{return} UNSAT
+                \EndIf
+              \EndWhile
+              \State \textbf{return} $A$
+          \EndProcedure
+      \end{algorithmic}
+    \end{algorithm}
+
+    However this algorithm runs in polynomial time $\mathcal{O}(n^2)$. Unit propagation can be done in linear time by tracking which clauses can be influenced by a variable flip.
+
+    \begin{algorithm}[H]
+      \caption{Linear HornSAT Solver}
+      \begin{algorithmic}[1]
+          \Procedure{HornSAT}{$\phi$} \Comment{$\phi$ is a formula in CNF form with $m$ clauses $c_i, i = 1, \dots, m$}
+              \State $LMap\gets \Call{Preprocess}{\phi}$ \Comment{Map from variable $v$ to clauses where $v$ is on the LHS of the implication}
+              \State $Stack\gets \Call{Preprocess}{\phi}$ \Comment{Stack of unit positive literal clauses}
+              \State $A\gets [\mathbf{F}, \dots, \mathbf{F}]$
+              \While{$c \gets \Call{Pop}{Stack}$} \Comment{While the stack has clauses left}
+                \If{$c$ is of form $((x_{n}) \rightarrow \mathbf{F})$}
+                  \State \textbf{return} UNSAT
+                \ElsIf{$c$ is of form $(\textunderscore \rightarrow x_p$ \&\& $x_p = \mathbf{T})$}
+                  \State \textbf{continue}
+                \ElsIf{$c$ is of form $(\mathbf{T} \rightarrow x_p)$ or of form $((x_{n,1} \land \dots \land x_{n,l}) \rightarrow x_p)$}
+                  \State $A[x_p] \gets \mathbf{T}$
+                  \For {$c' \in LMap[x_p]$}
+                    \State $c' \gets c''$ \Comment{Where $c''$ is $c'$ with $x_p$ deleted}
+                    \If{$c''$ is of form $(\mathbf{T} \rightarrow x_p')$}
+                      \Call{Push}{Stack, $x_p'$}
+                    \EndIf
+                  \EndFor
+                \EndIf
+              \EndWhile
+              \State \textbf{return} $A$
+          \EndProcedure
+      \end{algorithmic}
+    \end{algorithm}
+
+    Both of the preprocessing steps can be done while the CNF formula is being parsed. This version runs in $\mathcal{O}(n)$.
+
+  \item {\color{blue} Give a polynomial-time algorithm to check whether a formula on $n$ variables comprising $m$ CNF clauses is renamable Horn. Try to express this problem itself as a SAT problem.}
+
 \end{enumerate}
 
 \section{The Pigeon-Hole Problem}
