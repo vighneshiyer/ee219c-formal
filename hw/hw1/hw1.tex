@@ -82,6 +82,8 @@ everyPigeonInOneHole.union(noTwoPigeonsPerHole)
 
     \item {\color{blue} Construct the BDD for the pigeon-hole problem and verify it simplifies to false. What happens when you increase $n$? Does the variable order matter? Use the Python \texttt{dd} package.}
 
+      Implementation of the pigeon-hole problem BDD using the \texttt{dd} package:
+
       \begin{minted}[breaklines,tabsize=2]{python}
 def pigeonhole(pdfname, n):
     print ('  [Pigeonhole Problem for n=%d]' % n)
@@ -104,5 +106,16 @@ def pigeonhole(pdfname, n):
     else:
         print('UNSAT')
       \end{minted}
+
+      This function always prints \texttt{UNSAT}.
+
+      \begin{figure}[H]
+        \centering
+        \includegraphics[width=\textwidth]{figs/pigeon_hole_bdd_runtime_log.pdf}
+      \end{figure}
+
+      The runtime of the pigeon-hole problem is exponential in $n$.
+
+      When I enabled dynamic reordering with \texttt{bdd.configure(reordering=True)}, the runtime actually got worse by about 10x. This is probably attributed to a lot of time being spent on reordering which is useless in this pathological problem. The variable order doesn't matter since every variable has to be propagated to figure out if the problem is unsat.
 \end{enumerate}
 \end{document}
