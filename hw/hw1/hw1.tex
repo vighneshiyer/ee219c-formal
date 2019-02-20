@@ -89,6 +89,20 @@
 
   \item {\color{blue} Give a polynomial-time algorithm to check whether a formula on $n$ variables comprising $m$ CNF clauses is renamable Horn. Try to express this problem itself as a SAT problem.}
 
+    Given a CNF formula $\phi$ with clauses $c_1, \dots, c_k$, and where each clause $c_i$ has literals $l_{i,1}, \dots, l_{i,l}$ construct a new CNF formula $\phi_R$ as such:
+    \begin{align*}
+      \phi_R = \bigwedge_{i=1}^k \bigwedge_{1 \leq j < k \leq l} (l_{i,j} \lor l_{i,k})
+    \end{align*}
+
+    If $\phi_R$ is satisfiable, then the original formula $\phi$ is renamable Horn. The solution to $\phi_R$ indicates what literals should be flipped to make $\phi$ Horn SAT.
+
+    We can show this property by examining a particular clause $c_i$ of $\phi$.
+    \begin{enumerate}
+      \item $l_{i,j}$ and $l_{i,k}$ are both \textbf{positive literals}
+      \item $l_{i,j}$ and $l_{i,k}$ are mixed \textbf{positive and negative literals}
+      \item $l_{i,j}$ and $l_{i,k}$ are both \textbf{negative literals}
+    \end{enumerate}
+
 \end{enumerate}
 
 \section{The Pigeon-Hole Problem}
