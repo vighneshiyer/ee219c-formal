@@ -94,15 +94,26 @@
       \phi_R = \bigwedge_{i=1}^k \bigwedge_{1 \leq j < k \leq l} (l_{i,j} \lor l_{i,k})
     \end{align*}
 
-    If $\phi_R$ is satisfiable, then the original formula $\phi$ is renamable Horn. The solution to $\phi_R$ indicates what literals should be flipped to make $\phi$ Horn SAT.
+    If $\phi_R$ is satisfiable, then the original formula $\phi$ is renamable Horn. The solution to $\phi_R$ indicates what variables should be flipped to make $\phi$ Horn SAT.
 
-    We can show this property by examining a particular clause $c_i$ of $\phi$.
+    We can show this property by examining a particular clause $c_i$ and clause pair $l_{i,j}, l_{i,k}$ of $\phi$, while assuming that $\phi$ is Horn renamable.
     \begin{enumerate}
-      \item $l_{i,j}$ and $l_{i,k}$ are both \textbf{positive literals}
-      \item $l_{i,j}$ and $l_{i,k}$ are mixed \textbf{positive and negative literals}
-      \item $l_{i,j}$ and $l_{i,k}$ are both \textbf{negative literals}
+      \item $l_{i,j}$ and $l_{i,k}$ are both \textbf{positive literals} $(x_{p,1} \lor x_{p,2})$
+
+        To make $\phi_R$ SAT, at least one of the variables must be set to \textbf{T}. This will flip one of the literals in $\phi$ to make it Horn.
+
+      \item $l_{i,j}$ and $l_{i,k}$ are mixed \textbf{positive and negative literals} $(x_p \lor x_n')$
+
+        To make $\phi_R$ SAT, either $x_p = \mathbf{T}, x_n = \mathbf{F}$, or $x_p = \mathbf{T}, x_n = \mathbf{T}$, or $x_p = \mathbf{F}, x_n = \mathbf{F}$.
+
+        In all cases they represent renamings that would make the original clause Horn, or preserve its Horn-ness.
+
+      \item $l_{i,j}$ and $l_{i,k}$ are both \textbf{negative literals} $(x_{n,1}' \lor x_{n,2}')$
+
+        To make $\phi_R$ SAT, at most one of the variables can be set to \textbf{T}. This will preserve the Horn-ness of the original clause.
     \end{enumerate}
 
+    So if $\phi_R$ is SAT, then the positive assignments to the variables indicate that the literals containing that variable in $\phi$ should be complemented to make the formula HornSAT. Since it takes time $\mathcal{O}(m)$ to construct $\phi_R$ and it takes polynomial time to solve 2-SAT, this algorithm runs in polynomial time.
 \end{enumerate}
 
 \section{The Pigeon-Hole Problem}
