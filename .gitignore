@@ -3,3 +3,7 @@
 *.out
 *.ipynb_checkpoints
 *minted*
+*.bbl
+*.bcf
+*.blg
+*.run.xml

@@ -1,0 +1,30 @@
+\documentclass[11pt]{article}
+\usepackage[backend=biber,style=ieee]{biblatex}
+\bibliography{references}
+
+\title{DRILLS: Debugging RTL Intelligently with Localization from Long Simulation}
+\author{Donggyu Kim, Vighnesh Iyer}
+\date{}
+
+\begin{document}
+\maketitle
+
+The goal of this project is to develop a productive debugging tool for hardware designs. Specifically, we will develop a methodology to localize bugs in hardware designs with a given error trace.
+
+As hardware designs are getting more complex to meet required performance and functionalities, their verification becomes much more challenging. A recent study shows that verification dominates time-to-market and it is getting worse over time\autocite{Foster}. Therefore, it is more important than ever to invent effective hardware verification tools to alleviate time and manual effort for hardware verification.
+
+Simulation-based verification has been the most effective for system-level verification. To check whether or not the whole system works for real-world workloads, we usually test the hardware design with long simulation using the FPGA, which is much faster than software-based simulation but is lack of visibility. DESSERT\autocite{Kim2018} shows how to catch errors and obtain error traces from FPGA-based simulation with assertion synthesis and commit log comparisons. However, bug locations still should be manually identified as errors are only caught by high-level properties, which is a non-trivial task due to the complexity of the hardware design.
+
+There are lots of studies on SAT-based bug localization\autocite{Veneris2003, Chang2007, Mirzaeian}. The idea is instrument muxes for suspect lines of RTL, and transform the instrumented hardware design into the CNF to let the SAT solver to find bug locations. However, this approach is not scalable for complex hardware designs and long error traces.
+
+In this project, we propose a novel methodology to effectively localize bugs from error traces. Our proposal is localize bugs using fine-grained specs mined from correct traces while catching errors from high-level properties. We collect correct traces from small tests as well as realistic workloads from DESSERT. We also employ template-based spec-mining suggested by Li et. al \autocite{Li2010}. Since this approach is computationally efficient, we can train as many simple but fine-grained assertions as possible from long traces. Note that we do not have to merge these simple assertions for more complex properties since these assertions are only used for bug localization, which makes this approach more computationally efficient and justifies adding various templates for effective bug localization.
+
+The timeline for this project is follow:
+\begin{enumerate}
+  \item \textbf{March}: Vighnesh will develop a tool to convert VCD dumps into module-level delta traces. Donggyu will figure out what templates should be introduced for effective bug localization. We believe assertions in terms of cycles will be very helpful.
+  \item \textbf{April}: We will implement a spec-mining tool using module-level delta traces, and apply this tool for very simple designs. We will also collect correct and error traces for complex designs using DESSERT.
+  \item \textbf{May}: We will present preliminary results with complex designs in the class. We will continue this work even after then and plan to publish this work.
+\end{enumerate}
+
+\printbibliography
+\end{document}
