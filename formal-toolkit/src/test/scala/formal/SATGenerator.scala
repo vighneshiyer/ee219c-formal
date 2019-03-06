@@ -11,6 +11,7 @@ object SATGenerator {
     */
   def randomSet(n: Int, k: Int): Set[Int] = {
     // TODO: change this to shuffle the sequence (1 to n) and take k elements
+    // See this SO answer: https://stackoverflow.com/questions/32932229/how-to-randomly-sample-from-a-scala-list-or-array
     val s = collection.mutable.Set.empty[Int]
     while (s.size < k) {
       s.add(1 + nextInt(n))
