@@ -1,4 +1,3 @@
-import itertools
 import z3
 from math import ceil, log
 
@@ -58,7 +57,7 @@ def pretty_print(g, flags=None):
         int_values = [rows[i]] + gr
         if flags:
             flags_plus = [True] + flags[i*n:(i+1)*n]
-            zipped_values = itertools.izip(flags_plus, int_values)
+            zipped_values = zip(flags_plus, int_values)
             str_values = [to_str(vi, fi) for fi, vi in zipped_values]
         else:
             str_values = ['%3d' % v for v in int_values]

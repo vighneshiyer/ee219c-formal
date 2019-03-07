@@ -12,7 +12,7 @@
     \bigskip
     \noindent
     \begin{minipage}[c]{0.4\textwidth}
-        \begin{minted}{c}
+      \begin{minted}{c}
 int f1(int x) {
   int v0;
   if (x > 0) v0 = x;
@@ -23,7 +23,7 @@ int f1(int x) {
     \end{minipage}
     \hfill
     \begin{minipage}[c]{0.4\textwidth}
-        \begin{minted}{c}
+      \begin{minted}{c}
 int f2(int x) {
   int v1, v2;
   v1 = x >> 31;
@@ -34,7 +34,8 @@ int f2(int x) {
     \end{minipage}
     \bigskip
 
-    I encoded this problem with the Z3 Python API:
+    \texttt{f1} is an absolute value function. \texttt{f2} is first isolating the sign bit in \texttt{v1} then performing a 2s complement inversion if the sign bit is 1. So these functions should be equal. I encoded this validity question using the Z3 Python API:
+
     \begin{minted}{python}
 x, v0, v1, v2 = BitVecs('x v0 v1 v2', 32)
 s = Solver()
@@ -62,5 +63,73 @@ unsat
     \end{minted}
 
     Showing that \texttt{f1} and \texttt{f2} are functionally equivalent.
+
+  \item {\color{blue}Are the functions \texttt{f3} and \texttt{f4} in Figure 1 equivalent?}
+
+    \bigskip
+    \noindent
+    \begin{minipage}[c]{0.4\textwidth}
+      \begin{minted}{c}
+int f3(int x, int y) {
+  int v0;
+  if (x >= y) v0 = x;
+  else v0 = y;
+  return v0;
+}
+      \end{minted}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[c]{0.4\textwidth}
+      \begin{minted}{c}
+int f4(int x, int y) {
+  int v1, v2, v3;
+  v1 = x ^ y;
+  v2 = (-(x >= y));
+  v3 = v1 & v2;
+  return (v3 ^ y);
+}
+      \end{minted}
+    \end{minipage}
+    \bigskip
+
+    \texttt{f3} is a max function. I used Z3 in the same manner:
+
+    \begin{minted}{python}
+x, y, v0, v1, v2, v3 = BitVecs('x y v0 v1 v2 v3', 32)
+s = Solver()
+s.add(v0 != v3 ^ y,
+      v0 == If(x >= y, x, y),
+      v1 == x ^ y,
+      v2 == If(x >= y, BitVecVal(-1, 32), BitVecVal(0, 32)),
+      v3 == v1 & v2
+     )
+print(s.check())
+print(s.sexpr())
+    \end{minted}
+
+    These two functions are also equivalent:
+    \begin{minted}{text}
+unsat
+(declare-fun v0 () (_ BitVec 32))
+(declare-fun y () (_ BitVec 32))
+(declare-fun x () (_ BitVec 32))
+(declare-fun v1 () (_ BitVec 32))
+(declare-fun v2 () (_ BitVec 32))
+(declare-fun v3 () (_ BitVec 32))
+(assert (distinct v0 (bvxor v3 y)))
+(assert (= v0 (ite (bvsge x y) x y)))
+(assert (= v1 (bvxor x y)))
+(assert (= v2 (ite (bvsge x y) #xffffffff #x00000000)))
+(assert (= v3 (bvand v1 v2)))
+(model-add v0 () (_ BitVec 32) (ite (bvsle y x) x y))
+(model-add v1 () (_ BitVec 32) (bvxor x y))
+(model-add v2 () (_ BitVec 32) (ite (bvsle y x) #xffffffff #x00000000))
+(model-add v3
+           ()
+           (_ BitVec 32)
+           (let ((a!1 (bvor (bvnot (bvxor x y))
+                            (bvnot (ite (bvsle y x) #xffffffff #x00000000)))))
+             (bvnot a!1)))
+    \end{minted}
 \end{enumerate}
 \end{document}

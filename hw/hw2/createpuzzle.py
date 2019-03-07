@@ -1,5 +1,4 @@
 import z3
-import itertools
 
 from sumsudoku import *
 

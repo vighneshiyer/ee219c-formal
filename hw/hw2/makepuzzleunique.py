@@ -19,7 +19,7 @@ def make_puzzle_unique(initial_grid):
 # row i, column j of the puzzle is "empty."
 
 # ---- DON'T CHANGE THE CODE BELOW -------
-    r = S.solve()
+    r = S.check()
     if r == z3.sat:
         pretty_print(extract_model(S.model(), g1), flags)
     else:
