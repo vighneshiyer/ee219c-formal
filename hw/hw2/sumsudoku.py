@@ -1,5 +1,9 @@
 import z3
 from math import ceil, log
+import itertools
+from functools import reduce
+import typing
+from typing import List
 
 # Parameters for Sum-Sudoku
 n = 3
@@ -19,23 +23,48 @@ def gridvars(names, n, m):
 # ----------------------------------------
 # Part (a): Valid solutions to Sum-Sudoku
 # ------ IMPLEMENT YOUR CODE HERE --------
+def transpose(l: List[List]) -> List[List]:
+    return [list(i) for i in zip(*l)]
+
 def var(name):
     "Create a variable of the appropriate type here."
-    raise NotImplementedError("FIXME")
+    return z3.Int(name)
 
 def val(v):
     """Create an SMT literal of the appropriate type that corresponds to the
     Python integer 'v' here."""
-    # If you are using integers to represent the grid variables, you can just
-    # return v, but if you are using bit-vectors, you will need to use
-    # z3.BitVecVal(v, <width>) to construct a bit-vector literal.
-    raise NotImplementedError("FIXME")
+    return z3.IntVal(v)
 
 def valid(g):
     """Given the variables 'g' create a formula that encodes validity of the
     sum-sudoku instance for these variables."""
-
-    raise NotImplementedError("FIXME")
+    # Ensure all rows and all columns have unique values
+    def unique_across_rows():
+        for row in g[2]:
+            for combo in itertools.combinations(row, 2):
+                yield combo[0] != combo[1]
+    rows_unique = reduce(lambda a, b: z3.And(a, b), unique_across_rows())
+    def unique_across_cols():
+        for row in transpose(g[2]):
+            for combo in itertools.combinations(row, 2):
+                yield combo[0] != combo[1]
+    cols_unique = reduce(lambda a, b: z3.And(a, b), unique_across_cols())
+    # Ensure all values are between 1 and m
+    def values_in_range():
+        for row in g[2]:
+            for elem in row:
+                yield z3.And(elem >= 1, elem <= m)
+    vals_range = reduce(lambda a, b: z3.And(a, b), values_in_range())
+    # Relate the row and column sums to the grid
+    def row_relation():
+        for row_num in range(n):
+            yield g[0][row_num] == reduce(lambda a, b: a + b, g[2][row_num])
+    row_sum_rel = reduce(lambda a, b: z3.And(a, b), row_relation())
+    def col_relation():
+        for col_num in range(n):
+            yield g[1][col_num] == reduce(lambda a, b: a + b, transpose(g[2])[col_num])
+    col_sum_rel = reduce(lambda a, b: z3.And(a, b), col_relation())
+    return z3.And(rows_unique, cols_unique, vals_range, row_sum_rel, col_sum_rel)
 
 # ---- DON'T CHANGE THE CODE BELOW -------
 def extract_model(m, g):
@@ -68,15 +97,16 @@ def pretty_print(g, flags=None):
 
 def solve_sum_sudoku():
     g = gridvars(('r', 'c', 'x'), n, m)
+    print(g)
     rs, cs = g[0], g[1]
 
     S = z3.Solver()
     S.add(valid(g))
-    S.add(z3.And(rs[0] == val(8), 
-                 rs[1] == val(10), 
+    S.add(z3.And(rs[0] == val(8),
+                 rs[1] == val(10),
                  rs[2] == val(10)))
-    S.add(z3.And(cs[0] == val(8), 
-                 cs[1] == val(8), 
+    S.add(z3.And(cs[0] == val(8),
+                 cs[1] == val(8),
                  cs[2] == val(12)))
 
     if S.check() == z3.sat:

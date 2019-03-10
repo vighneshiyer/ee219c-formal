@@ -132,4 +132,17 @@ unsat
              (bvnot a!1)))
     \end{minted}
 \end{enumerate}
+
+\section{Sum-Sudoku}
+\begin{enumerate}[label=(\alph*)]
+  \item {\color{blue}Describe your SMT encoding and list the constraints in it. Then encode the formulation using the Z3 API by implementing \texttt{var}, \texttt{val}, and \texttt{valid} in \texttt{sumsudoku.py}.}
+
+    We are working in the theory of \texttt{QF\_LIA}.
+    \begin{align*}
+      x_{i,j} \quad \forall i \: 0 \leq i< n \,, 0 \leq j < n
+    \end{align*}
+    Declare variables representing the value in each square. Also declare variables $r_i \forall i 0 \leq i < n$ and $c_i \forall i 0 \leq i < n$ representing the row and column sums.
+
+  \item Use the pigeonhole principle, forall numbers there is only 1 place it can go into.
+\end{enumerate}
 \end{document}
