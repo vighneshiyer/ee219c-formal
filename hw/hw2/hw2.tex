@@ -137,11 +137,69 @@ unsat
 \begin{enumerate}[label=(\alph*)]
   \item {\color{blue}Describe your SMT encoding and list the constraints in it. Then encode the formulation using the Z3 API by implementing \texttt{var}, \texttt{val}, and \texttt{valid} in \texttt{sumsudoku.py}.}
 
-    We are working in the theory of \texttt{QF\_LIA}.
+    We are working in the theory of \texttt{QF\_LIA}. Declare the following variables:
     \begin{align*}
-      x_{i,j} \quad \forall i \: 0 \leq i< n \,, 0 \leq j < n
+      x_{i,j} &\quad \forall i \: 0 \leq i < n \,, 0 \leq j < n \text{ where } x_{i,j} \text{ represents the value of a cell} \\
+      c_i &\quad \forall i \: 0 \leq i < n \text{ where } c_i \text{ represents the sum of column } i \\
+      r_i &\quad \forall i \: 0 \leq i < n \text{ where } r_i \text{ represents the sum of row } i
     \end{align*}
-    Declare variables representing the value in each square. Also declare variables $r_i \forall i 0 \leq i < n$ and $c_i \forall i 0 \leq i < n$ representing the row and column sums.
+
+    Enforce the following constraints:
+    \begin{align*}
+      x_{i,j} \neq x_{i,k} &\quad \forall i \:, 0 \leq j < k \leq n \text{ : values in each row are distinct} \\
+      x_{j,i} \neq x_{k,i} &\quad \forall i \:, 0 \leq j < k \leq n \text{ : values in each column are distinct} \\
+      x_{i,j} \in \{1, \dots, m\} &\quad \forall i \:, 0 \leq i < n \,, 0 \leq j < n \text{ : values in each cell are between 1 and m} \\
+      \sum_{i=1}^n x_{i,j} = c_i &\quad \forall j \:, 0 \leq n \text{ : sum across cells in a column equals the column sum} \\
+      \sum_{j=1}^n x_{i,j} = r_i &\quad \forall i \:, 0 \leq n \text{ : sum across cells in a row equals the row sum}
+    \end{align*}
+
+    I implemented the functions in Python:
+    \begin{minted}{python}
+def transpose(l: List[List]) -> List[List]:
+    return [list(i) for i in zip(*l)]
+def var(name): return z3.Int(name)
+def val(v): return z3.IntVal(v)
+def valid(g):
+    # Ensure all rows and all columns have unique values
+    def unique_across_rows():
+        for row in g[2]:
+            for combo in itertools.combinations(row, 2):
+                yield combo[0] != combo[1]
+    rows_unique = reduce(lambda a, b: z3.And(a, b), unique_across_rows())
+    def unique_across_cols():
+        for row in transpose(g[2]):
+            for combo in itertools.combinations(row, 2):
+                yield combo[0] != combo[1]
+    cols_unique = reduce(lambda a, b: z3.And(a, b), unique_across_cols())
+    # Ensure all values are between 1 and m
+    def values_in_range():
+        for row in g[2]:
+            for elem in row:
+                yield z3.And(elem >= 1, elem <= m)
+    vals_range = reduce(lambda a, b: z3.And(a, b), values_in_range())
+    # Relate the row and column sums to the grid
+    def row_relation():
+        for row_num in range(n):
+            yield g[0][row_num] == reduce(lambda a, b: a + b, g[2][row_num])
+    row_sum_rel = reduce(lambda a, b: z3.And(a, b), row_relation())
+    def col_relation():
+        for col_num in range(n):
+            yield g[1][col_num] == reduce(lambda a, b: a + b, transpose(g[2])[col_num])
+    col_sum_rel = reduce(lambda a, b: z3.And(a, b), col_relation())
+    return z3.And(rows_unique, cols_unique, vals_range, row_sum_rel, col_sum_rel)
+    \end{minted}
+
+    Z3 produced this solution:
+    \begin{minted}{text}
+    |   8 |   8 |  12
+---------------------
+  8 |   2 |   1 |   5
+ 10 |   5 |   2 |   3
+ 10 |   1 |   5 |   4
+---------------------
+    \end{minted}
+
+    which doesn't match the solution in the homework, because this board doesn't have a unique solution.
 
   \item Use the pigeonhole principle, forall numbers there is only 1 place it can go into.
 \end{enumerate}
