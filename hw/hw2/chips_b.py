@@ -105,20 +105,36 @@ def check_termination():
     S.add(z3.Not(z3.Or(rel, trm)))
     return S.check() == z3.unsat
 
+# If one of the removed chips is red and the other is yellow, you return the red chip to the bag
 def case1(color1, color2, state):
-    raise NotImplementedError("FIXME")
+    (ycnt, bcnt, rcnt) = state
+    cnd = z3.Or(
+            z3.And(color1 == RED, color2 == YELLOW),
+            z3.And(color2 == RED, color1 == YELLOW))
+    rcntp = z3.If(cnd, rcnt+1, rcnt)
+    return (ycnt, bcnt, rcntp)
 
+# If both removed chips are yellow, you put five blue chips into the bag
 def case2(color1, color2, state):
-    raise NotImplementedError("FIXME")
+    (ycnt, bcnt, rcnt) = state
+    cnd = z3.And(color1 == YELLOW, color2 == YELLOW)
+    bcntp = z3.If(cnd, bcnt+5, bcnt)
+    return (ycnt, bcntp, rcnt)
 
+# If one of the removed chips is blue, and the other is red, you put ten blue chips into the bag
 def case3(color1, color2, state):
-    raise NotImplementedError("FIXME")
+    (ycnt, bcnt, rcnt) = state
+    cnd = z3.Or(
+            z3.And(color1 == BLUE, color2 == RED),
+            z3.And(color2 == BLUE, color1 == RED))
+    bcntp = z3.If(cnd, bcnt+10, bcnt)
+    return (ycnt, bcntp, rcnt)
 
 def relation(p, q):
     return z3.Or(
             z3.And(q[0] != p[0], q[0] < p[0]),
-            z3.And(q[0] == p[0], q[1] != p[1], q[1] < p[1]),
-            z3.And(q[0] == p[0], q[1] == p[1], q[2] < p[2])
+            z3.And(q[0] == p[0], q[2] != p[2], q[2] < p[2]),
+            z3.And(q[0] == p[0], q[2] == p[2], q[1] < p[1])
     )
 
 if __name__ == '__main__':

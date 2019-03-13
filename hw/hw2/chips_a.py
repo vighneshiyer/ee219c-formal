@@ -36,6 +36,7 @@ def case2(color1, color2, state):
     bcntp = z3.If(cnd, bcnt+5, bcnt)
     return (ycntp, bcntp, rcnt)
 
+# If one the the removed chips is blue and the other is not red, then put 10 red chips into the bag
 def case3(color1, color2, state):
     (ycnt, bcnt, rcnt) = state
     cnd = z3.Or(z3.And(color1 == BLUE, color2 != RED, color2 != NONE),

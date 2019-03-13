@@ -312,5 +312,46 @@ def relation(p, q):
             z3.And(q[0] == p[0], q[1] == p[1], q[2] < p[2])
     )
     \end{minted}
+
+  \item {\color{blue}Encode the new variation of the problem in the case functions and a new relation to prove termination}
+
+    Encoding the cases is straightforward:
+    \begin{minted}{python}
+def case1(color1, color2, state):
+    (ycnt, bcnt, rcnt) = state
+    cnd = z3.Or(
+            z3.And(color1 == RED, color2 == YELLOW),
+            z3.And(color2 == RED, color1 == YELLOW))
+    rcntp = z3.If(cnd, rcnt+1, rcnt)
+    return (ycnt, bcnt, rcntp)
+
+def case2(color1, color2, state):
+    (ycnt, bcnt, rcnt) = state
+    cnd = z3.And(color1 == YELLOW, color2 == YELLOW)
+    bcntp = z3.If(cnd, bcnt+5, bcnt)
+    return (ycnt, bcntp, rcnt)
+
+def case3(color1, color2, state):
+    (ycnt, bcnt, rcnt) = state
+    cnd = z3.Or(
+            z3.And(color1 == BLUE, color2 == RED),
+            z3.And(color2 == BLUE, color1 == RED))
+    bcntp = z3.If(cnd, bcnt+10, bcnt)
+    return (ycnt, bcntp, rcnt)
+    \end{minted}
+
+    The new well-founded relation needs to be modified slightly to take into account the 'elimination order' of this new algorithm variant which I analyzed by inspection to be yellow first, then red, and finally blue. I adjusted the relation accordingly to swap the comparison order between the red and blue chips because red chips are eliminated first by \texttt{case3}. This maintains a strict state ordering which guarantees termination of the algorithm.
+
+    \begin{minted}{python}
+def relation(p, q):
+    return z3.Or(
+            z3.And(q[0] != p[0], q[0] < p[0]),
+            z3.And(q[0] == p[0], q[2] != p[2], q[2] < p[2]),
+            z3.And(q[0] == p[0], q[2] == p[2], q[1] < p[1])
+    )
+    \end{minted}
+
+  \item {\color{blue}Pitfalls of showing the inverse of an implication is UNSAT?}
+    Say that $A_1$ was incorrectly encoded such that it was always false. The SMT formula that is checked is still going to be UNSAT if the other statements were always false under any variable assignment. So we could get a 'proof' of the initial implication without knowing that $A_1$ is improperly encoded. This can be mitigated by adding additional assertions to check the validity of the final SMT formula with each $A_i$ dropped out, to check that each term has an impact on the final solution.
 \end{enumerate}
 \end{document}
