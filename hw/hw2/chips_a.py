@@ -17,7 +17,7 @@ def get_chip(state):
     color = z3.If(ycnt > 0, YELLOW, color)
     color = z3.If(z3.And(bcnt > 0, z3.Or(newb(), color == NONE)), BLUE, color)
     color = z3.If(z3.And(rcnt > 0, z3.Or(newb(), color == NONE)), RED, color)
-    
+
     ycntp = z3.If(color == YELLOW, ycnt - 1, ycnt)
     bcntp = z3.If(color == BLUE,   bcnt - 1, bcnt)
     rcntp = z3.If(color == RED,    rcnt - 1, rcnt)
@@ -62,8 +62,16 @@ def is_anti_reflexive_relation():
     S = z3.Solver()
     state = z3.Int('ycnt'), z3.Int('bcnt'), z3.Int('rcnt')
     S.add(relation(state, state))
+    """
+    r = S.check()
+    if r == z3.sat:
+        m = S.model()
+        print (m.eval(state[0]), m.eval(state[1]), m.eval(state[2]))
+    else:
+        print("UNSAT")
+    """
     return S.check() == z3.unsat
-    
+
 def is_transitive_relation():
     "Prove that relation(x, y) and relation(y, z) implies relation(x, z)."
     S = z3.Solver()
@@ -80,11 +88,11 @@ def is_total_relation():
     S = z3.Solver()
     state1 = z3.Int('ycnt1'), z3.Int('bcnt1'), z3.Int('rcnt1')
     state2 = z3.Int('ycnt2'), z3.Int('bcnt2'), z3.Int('rcnt2')
-    eq = z3.And((state1[0] == state2[0]), 
-                (state1[1] == state2[1]), 
+    eq = z3.And((state1[0] == state2[0]),
+                (state1[1] == state2[1]),
                 (state1[2] == state2[2]))
     S.add(z3.Not(z3.Or(eq, relation(state1, state2), relation(state2, state1))))
-    r = S.check() 
+    r = S.check()
     if r == z3.sat:
         m = S.model()
         print (m.eval(state1[0]), m.eval(state1[1]), m.eval(state1[2]))
@@ -92,7 +100,7 @@ def is_total_relation():
     return r== z3.unsat
 
 def is_well_founded():
-    """Prove that forall x y, if x != y and x is not the halt state 
+    """Prove that forall x y, if x != y and x is not the halt state
        then relation(x, y) holds"""
     S = z3.Solver()
     state1 = z3.Int('ycnt1'), z3.Int('bcnt1'), z3.Int('rcnt1')
@@ -123,13 +131,24 @@ def check_termination():
     S.add(z3.Not(z3.Or(rel, trm)))
     return S.check() == z3.unsat
 
+def abs(x):
+    return z3.If(x >= 0,x,-x)
+
 def relation(p, q):
     # FIXME: Encode your well-founded relation here. The code below encodes an
     # incorrect relation that is not a total relation and will result in a
     # counter-example in the function is_total relation. You can look at that
     # code to understand how to interpret the SMT solver's counterexamples in
     # order to debug your relation.
-    return q[0] < p[0]
+    # Lol failed (and stupid) attempts
+    #return z3.And(*[z3.And(q[i] < p[i], p[i] > 0, q[i] > 0) for i in range(3)])
+    #return z3.And((q[0] + q[1] + q[2]) < (p[0] + p[1] + p[2]), *[z3.And(p[i] > 0, q[i] > 0) for i in range(3)])
+    #return z3.And(*[z3.And((q[i] / p[i]) != 1, q[i] != 0, p[i] != 0) for i in range(3)])
+    return z3.Or(
+            z3.And(q[0] != p[0], q[0] < p[0]),
+            z3.And(q[0] == p[0], q[1] != p[1], q[1] < p[1]),
+            z3.And(q[0] == p[0], q[1] == p[1], q[2] < p[2])
+            )
 
 if __name__ == '__main__':
     assert is_anti_reflexive_relation()
