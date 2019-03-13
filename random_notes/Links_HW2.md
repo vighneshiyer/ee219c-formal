@@ -1,0 +1,5 @@
+- [SO proof termination of function with well-founded relation induction](https://math.stackexchange.com/questions/2276474/proof-termination-of-a-function-with-well-founded-induction)
+- [Useful notes on well-founded relations](https://ncatlab.org/nlab/show/well-founded+relation)
+    - [More condensed dictionary version](http://www.oxfordreference.com/view/10.1093/oi/authority.20110803121723832)
+- [Z3 Guide Simple](https://ericpony.github.io/z3py-tutorial/guide-examples.htm)
+    - [Z3 Guide More Advanced](http://ericpony.github.io/z3py-tutorial/advanced-examples.htm)

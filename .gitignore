@@ -8,3 +8,4 @@
 *.blg
 *.run.xml
 .mypy_cache
+__pycache__
