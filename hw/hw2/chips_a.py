@@ -148,7 +148,7 @@ def relation(p, q):
             z3.And(q[0] != p[0], q[0] < p[0]),
             z3.And(q[0] == p[0], q[1] != p[1], q[1] < p[1]),
             z3.And(q[0] == p[0], q[1] == p[1], q[2] < p[2])
-            )
+    )
 
 if __name__ == '__main__':
     assert is_anti_reflexive_relation()

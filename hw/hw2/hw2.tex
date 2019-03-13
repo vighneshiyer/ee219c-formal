@@ -300,4 +300,17 @@ def make_puzzle_unique(initial_grid):
 \end{enumerate}
 
 \section{Bag of Chips}
+\begin{enumerate}[label=(\alph*)]
+  \item {\color{blue}Define your well-founded relation and why it guarantees termination.}
+
+    I used this well-founded relation which was kind of modeled off the \texttt{get\_chip()} logic. The idea is that the elements of the tuple are checked in a priority order which ensures that there is a consistent global ordering of states. The well-founded relation guarantees termination because it enforces that every subsequent state must be 'smaller' than the previous one in less than infinite timesteps, and this fact is used in an inductive proof to guide the sequence of states to when every element in the tuple is 0.
+    \begin{minted}{python}
+def relation(p, q):
+    return z3.Or(
+            z3.And(q[0] != p[0], q[0] < p[0]),
+            z3.And(q[0] == p[0], q[1] != p[1], q[1] < p[1]),
+            z3.And(q[0] == p[0], q[1] == p[1], q[2] < p[2])
+    )
+    \end{minted}
+\end{enumerate}
 \end{document}
