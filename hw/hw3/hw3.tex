@@ -1,0 +1,65 @@
+\input{../common.tex}
+
+\title{EE219C HW3: Model Checking}
+\author{Vighnesh Iyer}
+\date{}
+\maketitle
+
+\section{Interrupt Driven Program}
+\begin{enumerate}[label=(\alph*)]
+  \item {\color{blue} Describe the properties in the \texttt{Sys} module in English.
+    Note the composition of \texttt{main} and \texttt{ISR} within the module \texttt{Sys} is incorrectly done (you will need to fix it later).}
+
+    \begin{itemize}
+      \item \verb|invariant main_ISR_mutex: (M_enable != I_enable);|
+
+        Only the main module or the ISR module can be active at a given timestep.
+
+      \item \verb|property[LTL] one_step_ISR_return: G(return_ISR ==> X(!return_ISR));|
+
+        If \verb|return_ISR| is true in a given timestep, it should be false in the next timestep for any trace of the system.
+        This should ensure that the ISR module can't be advanced through in less than 1 timestep.
+
+      \item \verb|property[LTL] main_after_ISR: G((I_enable && X(M_enable)) ==> return_ISR);|
+
+        If on a particular timestep \verb|I_enable| is true and on the next time step \verb|M_enable| will be true, then \verb|return_ISR| should also be true on this timestep.
+
+      \item \verb|property[LTL] ISR_after_main: G((M_enable && X(I_enable)) ==> (assert_intr));|
+
+        The 'dual' of the previous property: if we are in the main module execution, and we are going to move into the ISR module next, the interrupt from the environment must also have been asserted right now.
+    \end{itemize}
+
+  \item {\color{blue} Run the file and interpret results.}
+
+    The invariant passes a 20 cycle unrolling because \verb|mode| isn't being updated, and \verb|M_enable| and \verb|I_enable| are mutually exclusive conditions.
+
+    The latter 2 LTL properties fail to check because \verb|mode| is being set arbitrarily and the counter-example traces contain transitions between the main and ISR modules that don't match the havoc behavior of \verb|mode| being arbitrarily set by the solver.
+
+  \item {\color{blue}Fix to correctly compose main and ISR in \verb|Sys|, and eliminate the above CEXs. Change \verb|update_mode|.}
+
+    \begin{minted}{text}
+procedure update_mode() modifies mode; {
+  case
+    mode == main_t: {
+      if (assert_intr) {
+        mode = ISR_t;
+      } else {
+        mode = main_t;
+      }
+    }
+    mode == ISR_t: {
+      if (return_ISR) {
+        mode = main_t;
+      } else {
+        mode = ISR_t;
+      }
+    }
+  esac
+}
+    \end{minted}
+
+    Now all the assertions pass.
+
+  \item {\color{blue} Correctly compose \verb|Sys| and \verb|Env| (should it be async composition with interleaving semantics?). Explain why the \verb|consec_main_pc_values| property may fail when the composition is corrected.}
+\end{enumerate}
+\end{document}
