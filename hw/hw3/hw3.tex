@@ -61,5 +61,28 @@ procedure update_mode() modifies mode; {
     Now all the assertions pass.
 
   \item {\color{blue} Correctly compose \verb|Sys| and \verb|Env| (should it be async composition with interleaving semantics?). Explain why the \verb|consec_main_pc_values| property may fail when the composition is corrected.}
+
+    I modified the \verb|init| and \verb|next| blocks as such:
+
+    \begin{minted}{text}
+init { havoc turn; }
+
+next {
+  if (turn) {
+    next (Sys_i);
+  } else {
+    next (Env_i);
+  }
+  if (assert_intr) {
+    turn' = true;
+  } else {
+    havoc turn;
+  }
+}
+    \end{minted}
+
+    I don't think it's acceptable for \verb|Sys| and \verb|Env| to be composed with async composition since once \verb|Env| raises the interrupt line, it is required that \verb|Sys| executes next to properly receive and interrupt. I think the decision as to which module to execute should be arbitrary, except with this one constraint.
+
+    With this modification the \verb|consec_main_pc_values| property fails because the solver makes \verb|turn| false all the time and prevents forward movement in \verb|Sys| which causes the property to fail in limited time.
 \end{enumerate}
 \end{document}

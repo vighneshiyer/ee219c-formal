@@ -93,6 +93,7 @@ module Sys { // composition of main function and ISR
         }
       }
     esac
+    // havoc mode;
   }
   // NO MODIFICATION TO CODE BELOW
 
@@ -158,26 +159,34 @@ module main {
   instance Sys_i : Sys(assert_intr : (assert_intr));
 
   // YOU WILL NEED TO MODIFY THE UPDATE TO turn IN THE init AND next BLOCKS BELOW
-  init { turn = true; }
+  //init { turn = true; }
+  init { havoc turn; }
 
-  next { 
-    turn' = !turn;
-    if (turn) { 
-      next (Sys_i); 
-    } else { 
-      next (Env_i); 
+  // Let either module proceed randomly, but if assert_intr goes high, the next turn must be the 
+  next {
+    //turn' = !turn;
+    if (turn) {
+      next (Sys_i);
+    } else {
+      next (Env_i);
+    }
+    if (assert_intr) {
+      turn' = true;
+    } else {
+      havoc turn;
     }
   }
   // NO MODIFICATIONS BEYOND THIS POINT
 
   property[LTL] consec_main_pc_values: F(Sys_i.main_f.pc == A && X(Sys_i.main_f.pc == B));
+  //property[LTL] program_finishes: (assert_intr) ==> F(Sys_i.main_f.pc == C);
 
   control {
     vobj = bmc(6);
     check;
     print_results;
     vobj.print_cex(
-        turn, assert_intr, 
+        turn, assert_intr,
         Sys_i.timerCount, Sys_i.mode,
         Sys_i.M_enable, Sys_i.I_enable,
         Sys_i.main_f.pc, Sys_i.ISR_f.pc
