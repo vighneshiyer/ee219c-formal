@@ -1,18 +1,18 @@
 module main
 {
   // The various positions the cars can be in.
-  type pos_t = enum { rd_w_n, rd_w_s, rd_e_n, rd_e_s, 
+  type pos_t = enum { rd_w_n, rd_w_s, rd_e_n, rd_e_s,
                       rd_s_e, rd_s_w, rd_n_e, rd_n_w,
                       i_nw, i_ne, i_sw, i_se };
 
   // We now define a number of helper macros.
 
   // Are we at a source zone?
-  define at_source(p : pos_t) : boolean = 
+  define at_source(p : pos_t) : boolean =
     p == rd_w_s || p == rd_s_e || p == rd_e_n || p == rd_n_w;
 
   // Are we at a sink zone?
-  define at_sink(p : pos_t) : boolean = 
+  define at_sink(p : pos_t) : boolean =
     p == rd_w_n || p == rd_s_w || p == rd_e_s || p == rd_n_e;
 
   // The valid values of steps at a source are between 1 and 4.  The value in
@@ -32,8 +32,8 @@ module main
   // This procedure returns a potential next position for the car currently at
   // p. It also decrements the step counter. p2 and p3 are the locations of the
   // other two cars.
-  procedure next_location (p : pos_t, p2 : pos_t, p3 : pos_t, steps_p : integer) 
-    returns (q : pos_t, steps_q : integer) 
+  procedure next_location (p : pos_t, p2 : pos_t, p3 : pos_t, steps_p : integer)
+    returns (q : pos_t, steps_q : integer)
   {
     case
       // If we are a sink, then respawn.
@@ -57,11 +57,49 @@ module main
     }
   }
 
-  // This function returns a tuple which tells us which car(s) are allowed to move. 
-  procedure can_move(c1 : pos_t, c2 : pos_t, c3 : pos_t)
-    returns (move_p1 : boolean, move_p2 : boolean, move_p3 : boolean)
+  // This function returns a tuple which tells us which car(s) are allowed to move.
+  procedure can_move(c1 : pos_t, c2 : pos_t, c3 : pos_t,
+  turn1: boolean, turn2: boolean, turn3: boolean,
+  turn1_status: turn_t, turn2_status: turn_t, turn3_status: turn_t)
+    returns (move_p1 : boolean, move_p2 : boolean, move_p3 : boolean,
+    turn1_nxt: boolean, turn2_nxt: boolean, turn3_nxt: boolean,
+    turn1_status_nxt: turn_t, turn2_status_nxt: turn_t, turn3_status_nxt: turn_t)
   {
-      // TODO: implement this.
+    if (turn1) {
+      move_p1 = true; move_p2 = false; move_p3 = false;
+    }
+    if (turn2) {
+      move_p1 = false; move_p2 = true; move_p3 = false;
+    }
+    if (turn3) {
+      move_p1 = false; move_p2 = false; move_p3 = true;
+    }
+    if (at_sink(c1)) {
+      turn1_status_nxt = respawn;
+    } else {
+      turn1_status_nxt = move;
+    }
+    if (at_sink(c2)) {
+      turn2_status_nxt = respawn;
+    } else {
+      turn2_status_nxt = move;
+    }
+    if (at_sink(c3)) {
+      turn3_status_nxt = respawn;
+    } else {
+      turn3_status_nxt = move;
+    }
+
+    turn1_nxt = turn1; turn2_nxt = turn2; turn3_nxt = turn3;
+    if (turn1_status_nxt == respawn) {
+      turn1_nxt = false; turn2_nxt = true; turn3_nxt = false;
+    }
+    if (turn2_status_nxt == respawn) {
+      turn1_nxt = false; turn2_nxt = false; turn3_nxt = true;
+    }
+    if (turn3_status_nxt == respawn) {
+      turn1_nxt = true; turn2_nxt = false; turn3_nxt = false;
+    }
   }
 
   // NOTE: There are three cars in the system.
@@ -79,6 +117,10 @@ module main
   // Should we move the corresponding car in this step?
   var move1, move2, move3 : boolean;
 
+  type turn_t = enum { move, respawn };
+  var turn1, turn2, turn3 : boolean;
+  var turn1_status, turn2_status, turn3_status: turn_t;
+
   init {
     assume (car1_pos != car2_pos) && (car2_pos != car3_pos) && (car3_pos != car1_pos);
     assume (valid_steps_at_src(steps1) && valid_steps_at_src(steps2) && valid_steps_at_src(steps3));
@@ -95,7 +137,7 @@ module main
     call (car2_nxt', steps2_nxt') = next_location(car2_pos, car3_pos, car1_pos, steps2);
     call (car3_nxt', steps3_nxt') = next_location(car3_pos, car1_pos, car2_pos, steps3);
 
-    call (move1', move2', move3') = can_move(car1_pos, car2_pos, car3_pos);
+    call (move1', move2', move3', turn1', turn2', turn3', turn1_status', turn2_status', turn3_status') = can_move(car1_pos, car2_pos, car3_pos, turn1, turn2, turn3, turn1_status, turn2_status, turn3_status);
 
     // set next state
     car1_pos' = if (move1') then car1_nxt' else car1_pos;
@@ -108,13 +150,24 @@ module main
   }
 
   // TODO: define the invariant here.
-  invariant no_collision: false; 
+  invariant no_collision: (car1_pos != car2_pos) && (car2_pos != car3_pos) && (car1_pos != car3_pos);
+  invariant bounded_exit: (wait_cnt1 < 18) && (wait_cnt2 < 18) && (wait_cnt3 < 18);
+  invariant only_one_moves: (move1 && !move2 && !move3) || (!move1 && move2 && !move3) || (!move1 && !move2 && move3);
+  invariant only_one_turn: (turn1 && !turn2 && !turn3) || (!turn1 && turn2 && !turn3) || (!turn1 && !turn2 && turn3);
+  invariant at_least_one_moves: !(!turn1 && !turn2 && !turn3);
+  invariant turn_is_move: (move1 && turn1) || (move2 && turn2) || (move3 && turn3);
+  invariant valid_steps_all: valid_steps(steps1) && valid_steps(steps2) && valid_steps(steps3);
+  invariant valid_steps_at_sink: (steps1 == -1 ==> at_sink(car1_pos)) && (steps2 == -1 ==> at_sink(car2_pos)) && (steps3 == -1 ==> at_sink(car3_pos));
+  invariant valid_steps_src: (at_source(car1_pos) ==> valid_steps_at_src(steps1)) && (at_source(car2_pos) ==> valid_steps_at_src(steps2)) && (at_source(car3_pos) ==> valid_steps_at_src(steps3));
+  property[LTL] bounded_1: G(F(wait_cnt1 == 0));
+  property[LTL] bounded_2: G(F(wait_cnt2 == 0));
+  property[LTL] bounded_3: G(F(wait_cnt3 == 0));
 
   // Proof script.
   control {
     v = induction;
     check;
     print_results;
-    v.print_cex(car1_pos, car2_pos, car3_pos, steps1, steps2, steps3);
+    v.print_cex(car1_pos, car2_pos, car3_pos, steps1, steps2, steps3, move1, move2, move3, turn1, turn2, turn3);
   }
 }
