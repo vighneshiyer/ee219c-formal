@@ -85,4 +85,95 @@ next {
 
     With this modification the \verb|consec_main_pc_values| property fails because the solver makes \verb|turn| false all the time and prevents forward movement in \verb|Sys| which causes the property to fail in limited time.
 \end{enumerate}
+
+\section{Smart Intersection}
+\begin{enumerate}[label=(\alph*)]
+  \item {\color{blue}Construct the \verb|no_collision| invariant.}
+
+    \begin{minted}[breaklines]{text}
+invariant no_collision: (car1_pos != car2_pos) && (car2_pos != car3_pos) && (car1_pos != car3_pos);
+    \end{minted}
+
+  \item {\color{blue}Define the \verb|can_move| procedure to determine which car can move}
+
+    This was a lot harder than I expected. I first tried to incorporate the next potential positions of each car and asserted that cars can only move if there are no 'conflicts' but this was hard to encode correctly as setting \verb|move_p1| relied on knowing what \verb|move_p2,p3| were \textit{going} to be set to.
+
+    I then tried to enforce a car movement ordering like this:
+    \begin{minted}[breaklines]{text}
+move_p1 = (!at_sink(c1) && at_source(c2) && at_source(c3)) || (at_sink(c1) && at_sink(c2) && at_sink(c3));
+move_p2 = (at_sink(c1) && !at_sink(c2) && at_source(c3)) || (at_source(c1) && at_sink(c2) && at_sink(c3));
+move_p3 = (at_sink(c1) && at_sink(c2) && !at_sink(c3)) || (at_source(c1) && at_source(c2) && at_sink(c3));
+    \end{minted}
+    but this too had a counterexample where car1 lands in a sink, then car2 moves to that same sink before car1 had a chance to respawn.
+
+    So my final working code implements car1, car2, car3 ordering where each car must start from a source, finish its turn in the intersection, land in a sink and then respawn, before the subsequent car is allowed to move.
+
+    \begin{minted}[breaklines]{text}
+type turn_t = enum { move, respawn };
+var turn1, turn2, turn3 : boolean;
+var turn1_status, turn2_status, turn3_status: turn_t;
+call (move1', move2', move3', turn1', turn2', turn3', turn1_status', turn2_status', turn3_status') = can_move(car1_pos, car2_pos, car3_pos, turn1, turn2, turn3, turn1_status, turn2_status, turn3_status);
+
+procedure can_move(c1 : pos_t, c2 : pos_t, c3 : pos_t,
+turn1: boolean, turn2: boolean, turn3: boolean,
+turn1_status: turn_t, turn2_status: turn_t, turn3_status: turn_t)
+  returns (move_p1 : boolean, move_p2 : boolean, move_p3 : boolean,
+  turn1_nxt: boolean, turn2_nxt: boolean, turn3_nxt: boolean,
+  turn1_status_nxt: turn_t, turn2_status_nxt: turn_t, turn3_status_nxt: turn_t)
+{
+    if (turn1) {
+      move_p1 = true; move_p2 = false; move_p3 = false;
+    }
+    if (turn2) {
+      move_p1 = false; move_p2 = true; move_p3 = false;
+    }
+    if (turn3) {
+      move_p1 = false; move_p2 = false; move_p3 = true;
+    }
+    if (at_sink(c1)) {
+      turn1_status_nxt = respawn;
+    } else {
+      turn1_status_nxt = move;
+    }
+    if (at_sink(c2)) {
+      turn2_status_nxt = respawn;
+    } else {
+      turn2_status_nxt = move;
+    }
+    if (at_sink(c3)) {
+      turn3_status_nxt = respawn;
+    } else {
+      turn3_status_nxt = move;
+    }
+
+    turn1_nxt = turn1; turn2_nxt = turn2; turn3_nxt = turn3;
+    if (turn1_status_nxt == respawn) {
+      turn1_nxt = false; turn2_nxt = true; turn3_nxt = false;
+    }
+    if (turn2_status_nxt == respawn) {
+      turn1_nxt = false; turn2_nxt = false; turn3_nxt = true;
+    }
+    if (turn3_status_nxt == respawn) {
+      turn1_nxt = true; turn2_nxt = false; turn3_nxt = false;
+    }
+}
+    \end{minted}
+
+    This finally worked and passed a 16 cycle BMC.
+
+  \item {\color{blue}Define the \verb|bounded_exit| invariant and verify it for 16 cycles with BMC}
+
+    In the worst case, each car takes 6 cycles to move from source to sink and then respawns at a new source. So I expect the bound on \verb|wait_cnt| to be 18.
+
+    \begin{minted}{text}
+invariant bounded_exit: (wait_cnt1 < 18) && (wait_cnt2 < 18) && (wait_cnt3 < 18);
+property[LTL] bounded_1: G(F(wait_cnt1 == 0));
+property[LTL] bounded_2: G(F(wait_cnt2 == 0));
+property[LTL] bounded_3: G(F(wait_cnt3 == 0));
+    \end{minted}
+
+    I extended the BMC to 20 cycles of unrolling and these invariants and properties held.
+
+  \item {\color{blue}Copy over to the induction file and prove the properties with induction for unbounded time. Add strenghtening invariants as necessary.}
+\end{enumerate}
 \end{document}
