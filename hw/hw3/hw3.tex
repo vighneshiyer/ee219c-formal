@@ -189,7 +189,7 @@ invariant valid_steps_src: (at_source(car1_pos) ==> valid_steps_at_src(steps1)) 
     \end{minted}
 \end{enumerate}
 
-\section{Linear Tempotal Logic}
+\section{Linear Temporal Logic}
 \begin{enumerate}[label=(\alph*)]
   \item {\color{blue}Labeled transition system that encodes the dynamics of the puzzle}
 
@@ -199,28 +199,90 @@ invariant valid_steps_src: (at_source(car1_pos) ==> valid_steps_at_src(steps1)) 
 
     The transition function $\delta((g1,w1,c1), (g2,w2,c2))$ is true if only one of the state variables changes state and false otherwise. It can also be true if a boat swap is performed (i.e. $(G_B, W_L, C_L) \rightarrow (G_L, W_B, C_L)$) is permitted where the goat and wolf were swapped on the boat.
 
-    The labeling function $L(g, w, c)$ emits $I$ (for illegal) if the state has the goat and cabbage on the same bank (without the wolf) or if the state has the wolf and goat on the same side (without the cabbage). Label the state $(G_R, W_R, C_R)$ with $G$ (for goal).
+    The labeling function $L(g, w, c)$ emits $I$ (for illegal) if the state has the goat and cabbage on the same bank (without the wolf) or if the state has the wolf and goat on the same side (without the cabbage). States with 2 items on the boat are also labeled with $I$. Label the state $(G_R, W_R, C_R)$ with $G$ (for goal).
 
   \item {\color{blue}LTL formula which encodes the task and the constraints on the goat/cabbage/wolf}
 
-    % no illegal states, only 1 thing on the boat
-
-    The task can be encoded as $F(G)$ and the constraint encoded as $G(!I)$. The final LTL formula: $\phi = F(G) \land G(!I)$
+    The constraints are $\phi_C = G(!I)$. The task is $\phi_T = F(G)$. Final LTL formula: $\phi = \phi_C \land \phi_T$.
 
   \item {\color{blue}Give a strategy to solve the river crossing puzzle}
 
     \begin{enumerate}
       \item Move the goat to the right bank and return \\
         - $(G_L, W_L, C_L) \rightarrow (G_B, W_L, C_L) \rightarrow (G_R, W_L, C_L)$
-      \item Then move the cabbage to the right bank, and bring the goat back to the left bank
-        - $(G_R, W_L, C_L) \rightarrow (G_R, W_L, C_B) \rightarrow (G_B$
-      \item Move the wolf to the right bank and return
-      \item Move the goat to the right bank
+      \item Then move the cabbage to the right bank, and bring the goat back to the left bank \\
+        - $(G_R, W_L, C_L) \rightarrow (G_R, W_L, C_B) \rightarrow (G_B, W_L, C_R) \rightarrow (G_L, W_B, C_R)$
+      \item Move the wolf to the right bank and return \\
+        - $(G_L, W_B, C_R) \rightarrow (G_L, W_R, C_R)$
+      \item Move the goat to the right bank \\
+        - $(G_L, W_R, C_R) \rightarrow (G_B, W_R, C_R) \rightarrow (G_R, W_R, C_R)$
     \end{enumerate}
 
+    The goal state is reached without encountering any illegal states.
 
   \item {\color{blue}Encode the transition system and strategy as a Spin model}
 
+    I very explicitly encoded the transition system with my particular strategy in spin:
+    \begin{minted}[breaklines]{text}
+#define left 0
+#define right 1
+#define boat 2
+int goat_loc, cabbage_loc, wolf_loc;
+bool illegal_state, goal_state;
+
+init {
+   goat_loc = left;
+   cabbage_loc = left;
+   wolf_loc = left;
+   illegal_state = false;
+   goal_state = false;
+   gl_wl_cl:
+      atomic{goat_loc = left; wolf_loc = left; cabbage_loc = left;}
+      goto gb_wl_cl;
+   gb_wl_cl:
+      atomic{goat_loc = boat; wolf_loc = left; cabbage_loc = left;}
+      goto gr_wl_cl;
+   gr_wl_cl:
+      atomic{goat_loc = right; wolf_loc = left; cabbage_loc = left;}
+      goto gr_wl_cb;
+   gr_wl_cb:
+      atomic{goat_loc = right; wolf_loc = left; cabbage_loc = boat;}
+      goto gb_wl_cr;
+   gb_wl_cr:
+      atomic{goat_loc = boat; wolf_loc = left; cabbage_loc = right;}
+      goto gl_wb_cr;
+   gl_wb_cr:
+      atomic{goat_loc = left; wolf_loc = boat; cabbage_loc = right;}
+      goto gl_wr_cr;
+   gl_wr_cr:
+      atomic{goat_loc = left; wolf_loc = right; cabbage_loc = right;}
+      goto gb_wr_cr;
+   gb_wr_cr:
+      atomic{goat_loc = boat; wolf_loc = right; cabbage_loc = right;}
+      goto gr_wr_cr;
+   gr_wr_cr:
+      atomic{goat_loc = right; wolf_loc = right; cabbage_loc = right; goal_state = true;}
+      goto done;
+   else_case:
+      illegal_state = true;
+   done:
+   ltl goal {[] <> goal_state}
+   ltl no_illegal {[] !illegal_state}
+   ltl goat_cabbage_apart {[] !(goat_loc == left && cabbage_loc == left && wolf_loc != left)}
+   ltl goat_cabbage_apart_r {[] !(goat_loc == right && cabbage_loc == right && wolf_loc != right)}
+   ltl goat_wolf_apart {[] !(goat_loc == left && wolf_loc == left && cabbage_loc != left)}
+   ltl goat_wolf_apart_r {[] !(goat_loc == right && wolf_loc == right && cabbage_loc != right)}
+}
+    \end{minted}
+
   \item {\color{blue}Use Spin to prove the strategy and the world model satisfies the LTL formula from (b)}
+
+    Each run of spin only checks 1 LTL property at a time, so 6 runs were required:
+
+    \begin{minted}{text}
+spin -a puzzle.spin; and gcc -o pan pan.c; and ./pan -a -N goat_wolf_apart_r
+    \end{minted}
+
+    and so forth for the 6 LTL properties. Spin exited with 0 errors in each run.
 \end{enumerate}
 \end{document}
