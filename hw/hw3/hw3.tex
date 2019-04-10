@@ -175,5 +175,52 @@ property[LTL] bounded_3: G(F(wait_cnt3 == 0));
     I extended the BMC to 20 cycles of unrolling and these invariants and properties held.
 
   \item {\color{blue}Copy over to the induction file and prove the properties with induction for unbounded time. Add strenghtening invariants as necessary.}
+
+    Wow, this was harder than expected. The solver needs you to state all the invariants very explicitly. So far, this is what I have:
+
+    \begin{minted}[breaklines]{text}
+invariant only_one_moves: (move1 && !move2 && !move3) || (!move1 && move2 && !move3) || (!move1 && !move2 && move3);
+invariant only_one_turn: (turn1 && !turn2 && !turn3) || (!turn1 && turn2 && !turn3) || (!turn1 && !turn2 && turn3);
+invariant at_least_one_moves: !(!turn1 && !turn2 && !turn3);
+invariant turn_is_move: (move1 && turn1) || (move2 && turn2) || (move3 && turn3);
+invariant valid_steps_all: valid_steps(steps1) && valid_steps(steps2) && valid_steps(steps3);
+invariant valid_steps_at_sink: (steps1 == -1 ==> at_sink(car1_pos)) && (steps2 == -1 ==> at_sink(car2_pos)) && (steps3 == -1 ==> at_sink(car3_pos));
+invariant valid_steps_src: (at_source(car1_pos) ==> valid_steps_at_src(steps1)) && (at_source(car2_pos) ==> valid_steps_at_src(steps2)) && (at_source(car3_pos) ==> valid_steps_at_src(steps3));
+    \end{minted}
+\end{enumerate}
+
+\section{Linear Tempotal Logic}
+\begin{enumerate}[label=(\alph*)]
+  \item {\color{blue}Labeled transition system that encodes the dynamics of the puzzle}
+
+    Let the state variables of the system $S = \{g, w, c\}$, where $g \in \{G_L, G_R, G_B\}$, $w \in \{W_L, W_R, W_B\}$, $c \in \{C_L, C_R, C_B\}$, where $g, w, c$ represent the locations of the goat, wolf, and cabbage on the left or right river banks, or on the boat.
+
+    The initial state $S_0 = \{(G_L, W_L, C_L)\}$ puts the goat, wolf, and cabbage on the left bank.
+
+    The transition function $\delta((g1,w1,c1), (g2,w2,c2))$ is true if only one of the state variables changes state and false otherwise. It can also be true if a boat swap is performed (i.e. $(G_B, W_L, C_L) \rightarrow (G_L, W_B, C_L)$) is permitted where the goat and wolf were swapped on the boat.
+
+    The labeling function $L(g, w, c)$ emits $I$ (for illegal) if the state has the goat and cabbage on the same bank (without the wolf) or if the state has the wolf and goat on the same side (without the cabbage). Label the state $(G_R, W_R, C_R)$ with $G$ (for goal).
+
+  \item {\color{blue}LTL formula which encodes the task and the constraints on the goat/cabbage/wolf}
+
+    % no illegal states, only 1 thing on the boat
+
+    The task can be encoded as $F(G)$ and the constraint encoded as $G(!I)$. The final LTL formula: $\phi = F(G) \land G(!I)$
+
+  \item {\color{blue}Give a strategy to solve the river crossing puzzle}
+
+    \begin{enumerate}
+      \item Move the goat to the right bank and return \\
+        - $(G_L, W_L, C_L) \rightarrow (G_B, W_L, C_L) \rightarrow (G_R, W_L, C_L)$
+      \item Then move the cabbage to the right bank, and bring the goat back to the left bank
+        - $(G_R, W_L, C_L) \rightarrow (G_R, W_L, C_B) \rightarrow (G_B$
+      \item Move the wolf to the right bank and return
+      \item Move the goat to the right bank
+    \end{enumerate}
+
+
+  \item {\color{blue}Encode the transition system and strategy as a Spin model}
+
+  \item {\color{blue}Use Spin to prove the strategy and the world model satisfies the LTL formula from (b)}
 \end{enumerate}
 \end{document}
