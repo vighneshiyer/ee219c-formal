@@ -106,7 +106,7 @@ move_p3 = (at_sink(c1) && at_sink(c2) && !at_sink(c3)) || (at_source(c1) && at_s
     \end{minted}
     but this too had a counterexample where car1 lands in a sink, then car2 moves to that same sink before car1 had a chance to respawn.
 
-    So my final working code implements car1, car2, car3 ordering where each car must start from a source, finish its turn in the intersection, land in a sink and then respawn, before the subsequent car is allowed to move.
+    A brute force method implements car1, car2, car3 ordering where each car must start from a source, finish its turn in the intersection, land in a sink and then respawn, before the subsequent car is allowed to move.
 
     \begin{minted}[breaklines]{text}
 type turn_t = enum { move, respawn };
@@ -159,33 +159,52 @@ turn1_status: turn_t, turn2_status: turn_t, turn3_status: turn_t)
 }
     \end{minted}
 
-    This finally worked and passed a 16 cycle BMC.
+    This finally worked and passed a 16 cycle BMC. However it is needlessly complex; so I found another solution without adding new variables:
+
+    \begin{minted}[breaklines]{text}
+procedure can_move(c1 : pos_t, c2 : pos_t, c3 : pos_t)
+  returns (move_p1 : boolean, move_p2 : boolean, move_p3 : boolean)
+{
+  move_p1 = (at_source(c1) && at_source(c2) && at_source(c3)) || in_intersection(c1) || (at_sink(c1) && at_source(c2) && at_source(c3));
+  move_p2 = (at_sink(c1) && at_source(c2) && at_source(c3)) || in_intersection(c2) || (at_source(c1) && at_sink(c2) && at_source(c3));
+  move_p3 = (at_source(c1) && at_sink(c2) && at_source(c3)) || in_intersection(c3) || (at_source(c1) && at_source(c2) && at_sink(c3));
+}
+    \end{minted}
+
+    The way this works is to let car1 go from source to sink and respawn, and at the same time it respawns, car2 is let go, and then car3 and the cycle repeats.
+    This passes a 16 cycle BMC too.
 
   \item {\color{blue}Define the \verb|bounded_exit| invariant and verify it for 16 cycles with BMC}
 
-    In the worst case, each car takes 6 cycles to move from source to sink and then respawns at a new source. So I expect the bound on \verb|wait_cnt| to be 18.
+    In the worst case, each car takes 6 cycles to move from source to sink and then respawns at a new source, but these cycles overlap by 1, so I expect the bound on \verb|wait_cnt| to be 16.
 
     \begin{minted}{text}
-invariant bounded_exit: (wait_cnt1 < 18) && (wait_cnt2 < 18) && (wait_cnt3 < 18);
+invariant bounded_exit: (wait_cnt1 < 16) && (wait_cnt2 < 16) && (wait_cnt3 < 16);
 property[LTL] bounded_1: G(F(wait_cnt1 == 0));
 property[LTL] bounded_2: G(F(wait_cnt2 == 0));
 property[LTL] bounded_3: G(F(wait_cnt3 == 0));
     \end{minted}
 
-    I extended the BMC to 20 cycles of unrolling and these invariants and properties held.
+    I extended the BMC to 17 cycles of unrolling just to be sure and these invariants and properties held.
 
-  \item {\color{blue}Copy over to the induction file and prove the properties with induction for unbounded time. Add strenghtening invariants as necessary.}
+  \item {\color{blue}Copy over to the induction file and prove \verb|no_collision| with induction for unbounded time. Add strenghtening invariants as necessary.}
 
-    Wow, this was harder than expected. The solver needs you to state all the invariants very explicitly. So far, this is what I have:
+    I spent a lot of time trying to prove the \verb|bounded_exit| invariant with induction and only later realized that the problem didn't ask for that. Proving \verb|no_collision| was much easier, only 1 invariant was needed:
 
     \begin{minted}[breaklines]{text}
-invariant only_one_moves: (move1 && !move2 && !move3) || (!move1 && move2 && !move3) || (!move1 && !move2 && move3);
-invariant only_one_turn: (turn1 && !turn2 && !turn3) || (!turn1 && turn2 && !turn3) || (!turn1 && !turn2 && turn3);
-invariant at_least_one_moves: !(!turn1 && !turn2 && !turn3);
-invariant turn_is_move: (move1 && turn1) || (move2 && turn2) || (move3 && turn3);
-invariant valid_steps_all: valid_steps(steps1) && valid_steps(steps2) && valid_steps(steps3);
-invariant valid_steps_at_sink: (steps1 == -1 ==> at_sink(car1_pos)) && (steps2 == -1 ==> at_sink(car2_pos)) && (steps3 == -1 ==> at_sink(car3_pos));
+  invariant car_positions: (at_source(car1_pos) && at_source(car2_pos) && at_source(car3_pos)) || (at_source(car1_pos) && at_source(car3_pos)) || (at_source(car2_pos) && at_source(car1_pos)) || (at_source(car3_pos) && at_source(car2_pos));
+    \end{minted}
+
+    which just explicitly states the possible car locations according to the turn-taking algorithm.
+
+    I had a bunch of other invariants in a hopeless attempt to show \verb|bounded_exit|, although now that I think about it, the BMC showed that already! There's no need for induction! Just for recording:
+
+    \begin{minted}[breaklines]{text}
 invariant valid_steps_src: (at_source(car1_pos) ==> valid_steps_at_src(steps1)) && (at_source(car2_pos) ==> valid_steps_at_src(steps2)) && (at_source(car3_pos) ==> valid_steps_at_src(steps3));
+invariant valid_steps_sink: (at_sink(car1_pos) ==> steps1 == -1) && (at_sink(car2_pos) ==> steps2 == -1) && (at_sink(car3_pos) ==> steps3 == -1);
+invariant valid_steps_sink_bi: (steps1 == -1 ==> at_sink(car1_pos)) && (steps2 == -1 ==> at_sink(car2_pos)) && (steps3 == -1 ==> at_sink(car3_pos));
+invariant valid_steps_all: valid_steps(steps1) && valid_steps(steps2) && valid_steps(steps3);
+invariant wait_above_zero: (wait_cnt1 >= 0) && (wait_cnt2 >= 0) && (wait_cnt3 >= 0);
     \end{minted}
 \end{enumerate}
 
@@ -284,5 +303,7 @@ spin -a puzzle.spin; and gcc -o pan pan.c; and ./pan -a -N goat_wolf_apart_r
     \end{minted}
 
     and so forth for the 6 LTL properties. Spin exited with 0 errors in each run.
+
+    Note: couldn't we just model the problem dynamics in uclid instead and just ask the solver for a model (there should be 2 valid ones)?
 \end{enumerate}
 \end{document}

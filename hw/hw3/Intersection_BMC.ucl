@@ -58,59 +58,12 @@ module main
   }
 
   // This function returns a tuple which tells us which car(s) are allowed to move.
-  procedure can_move(c1 : pos_t, c2 : pos_t, c3 : pos_t,
-  turn1: boolean, turn2: boolean, turn3: boolean,
-  turn1_status: turn_t, turn2_status: turn_t, turn3_status: turn_t)
-    returns (move_p1 : boolean, move_p2 : boolean, move_p3 : boolean,
-    turn1_nxt: boolean, turn2_nxt: boolean, turn3_nxt: boolean,
-    turn1_status_nxt: turn_t, turn2_status_nxt: turn_t, turn3_status_nxt: turn_t)
+  procedure can_move(c1 : pos_t, c2 : pos_t, c3 : pos_t)
+    returns (move_p1 : boolean, move_p2 : boolean, move_p3 : boolean)
   {
-    // Try to condition the next moves, but this fails for many reasons
-    //move_p1 = c1_next != c2_next;
-    //move_p2 = c2_next != c1_next && c1_next != c3;
-    //move_p3 = move_p2 && c3_next != c2_next && c3_next != c1_next;
-
-    // Only allow 1 car in the entire intersection at a time (make them go in turns: 1,2,3 from source to sink, then 1,2,3 respawn)
-    // OK this fails because car1 runs through the intersection and lands in a sink and waits there for the other 2 cars, but if car 2 lands in the same sink, there are collisions
-    //move_p1 = (!at_sink(c1) && at_source(c2) && at_source(c3)) || (at_sink(c1) && at_sink(c2) && at_sink(c3));
-    //move_p2 = (at_sink(c1) && !at_sink(c2) && at_source(c3)) || (at_source(c1) && at_sink(c2) && at_sink(c3));
-    //move_p3 = (at_sink(c1) && at_sink(c2) && !at_sink(c3)) || (at_source(c1) && at_source(c2) && at_sink(c3));
-    // This is a brute force hammer indeed
-    if (turn1) {
-      move_p1 = true; move_p2 = false; move_p3 = false;
-    }
-    if (turn2) {
-      move_p1 = false; move_p2 = true; move_p3 = false;
-    }
-    if (turn3) {
-      move_p1 = false; move_p2 = false; move_p3 = true;
-    }
-    if (at_sink(c1)) {
-      turn1_status_nxt = respawn;
-    } else {
-      turn1_status_nxt = move;
-    }
-    if (at_sink(c2)) {
-      turn2_status_nxt = respawn;
-    } else {
-      turn2_status_nxt = move;
-    }
-    if (at_sink(c3)) {
-      turn3_status_nxt = respawn;
-    } else {
-      turn3_status_nxt = move;
-    }
-
-    turn1_nxt = turn1; turn2_nxt = turn2; turn3_nxt = turn3;
-    if (turn1_status_nxt == respawn) {
-      turn1_nxt = false; turn2_nxt = true; turn3_nxt = false;
-    }
-    if (turn2_status_nxt == respawn) {
-      turn1_nxt = false; turn2_nxt = false; turn3_nxt = true;
-    }
-    if (turn3_status_nxt == respawn) {
-      turn1_nxt = true; turn2_nxt = false; turn3_nxt = false;
-    }
+    move_p1 = (at_source(c1) && at_source(c2) && at_source(c3)) || in_intersection(c1) || (at_sink(c1) && at_source(c2) && at_source(c3));
+    move_p2 = (at_sink(c1) && at_source(c2) && at_source(c3)) || in_intersection(c2) || (at_source(c1) && at_sink(c2) && at_source(c3));
+    move_p3 = (at_source(c1) && at_sink(c2) && at_source(c3)) || in_intersection(c3) || (at_source(c1) && at_source(c2) && at_sink(c3));
   }
 
   // NOTE: There are three cars in the system.
@@ -128,17 +81,11 @@ module main
   // Should we move the corresponding car in this step?
   var move1, move2, move3 : boolean;
 
-  type turn_t = enum { move, respawn };
-  var turn1, turn2, turn3 : boolean;
-  var turn1_status, turn2_status, turn3_status: turn_t;
-
   init {
     assume (car1_pos != car2_pos) && (car2_pos != car3_pos) && (car3_pos != car1_pos);
     assume (valid_steps_at_src(steps1) && valid_steps_at_src(steps2) && valid_steps_at_src(steps3));
     assume (at_source(car1_pos) && at_source(car2_pos) && at_source(car3_pos));
     wait_cnt1, wait_cnt2, wait_cnt3 = 0, 0, 0;
-    turn1, turn2, turn3 = true, false, false;
-    turn1_status, turn2_status, turn3_status = move, move, move;
   }
 
   next {
@@ -150,7 +97,7 @@ module main
     call (car2_nxt', steps2_nxt') = next_location(car2_pos, car3_pos, car1_pos, steps2);
     call (car3_nxt', steps3_nxt') = next_location(car3_pos, car1_pos, car2_pos, steps3);
 
-    call (move1', move2', move3', turn1', turn2', turn3', turn1_status', turn2_status', turn3_status') = can_move(car1_pos, car2_pos, car3_pos, turn1, turn2, turn3, turn1_status, turn2_status, turn3_status);
+    call (move1', move2', move3') = can_move(car1_pos, car2_pos, car3_pos);
 
     // set next state
     car1_pos' = if (move1') then car1_nxt' else car1_pos;
@@ -164,7 +111,7 @@ module main
 
   // TODO: define the two properties.
   invariant no_collision: (car1_pos != car2_pos) && (car2_pos != car3_pos) && (car1_pos != car3_pos);
-  invariant bounded_exit: (wait_cnt1 < 18) && (wait_cnt2 < 18) && (wait_cnt3 < 18);
+  invariant bounded_exit: (wait_cnt1 < 16) && (wait_cnt2 < 16) && (wait_cnt3 < 16);
   property[LTL] bounded_1: G(F(wait_cnt1 == 0));
   property[LTL] bounded_2: G(F(wait_cnt2 == 0));
   property[LTL] bounded_3: G(F(wait_cnt3 == 0));
@@ -174,10 +121,9 @@ module main
     // NOTE: You may want to set the unroll bound to a lower value while
     // debugging your model.
     v = unroll(20);
-    //v = unroll(5);
     check;
     print_results;
     v.print_cex(car1_pos, car2_pos, car3_pos, steps1, steps2, steps3,
-    car1_nxt, car2_nxt, car3_nxt, move1, move2, move3, turn1, turn2, turn3, wait_cnt1, wait_cnt2, wait_cnt3);
+    car1_nxt, car2_nxt, car3_nxt, move1, move2, move3, wait_cnt1, wait_cnt2, wait_cnt3);
   }
 }
